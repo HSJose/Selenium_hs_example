@@ -3,6 +3,8 @@ import { remote } from 'webdriverio';
 import * as EC from 'wdio-wait-for';
 import { setOptions } from 'expect-webdriverio';
 
+console.log('Running example_test_js.mjs');
+
 // Load environment variables
 const dotenv = await import('dotenv');
 dotenv.config();
@@ -14,13 +16,55 @@ export const config = {
   },
 };
 
+// Read api key from env variable
+const api_key = process.env.API_KEY
+
+// Define the API endpoint and headers
+const headers = {
+    'Authorization': `Bearer ${api_key}`
+};
+
+// Define a function for making POST API calls
+async function makeAPICall(url, headers, body) {
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify(body),
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error making POST request:', error);
+    throw error; // Rethrow error to handle it in the caller function
+  }
+};
+
+async function Passed(sessionId) {
+  const body = {
+    'status': 'passed',
+    'session_id': sessionId
+  };
+  await makeAPICall('https://api-dev.headspin.io/v0/perftests/upload', headers, body);
+};
+
+async function Failed(sessionId) {
+  const body = {
+    'status': 'failed',
+    'session_id': sessionId
+  };
+  await makeAPICall('https://api-dev.headspin.io/v0/perftests/upload', headers, body);
+};
+
 (async () => {
   
   let browser;
 
   try {
-    // Read api key from env variable
-    const api_key = process.env.API_KEY
+    console.log('Starting test');
 
     browser = await remote({
       logLevel: 'trace',
@@ -34,7 +78,18 @@ export const config = {
           "height": 1080
         },
         "headspin:selector": "device_skus:\"Chrome\"",
-        "headspin:newCommandTimeout": 600
+        "headspin:capture": true,
+        "headspin:testName": "Example Test",
+        "headspin:newCommandTimeout": 600,
+        "headspin:autoLabel": {
+          'Example test-automation page': {
+            'onCommandStart': [
+              {'method': 'POST', 'endpoint': '/session/:sessionId/url', 'body': 'https://the-internet.herokuapp.com'},
+            ],
+            'category': 'open test site',
+            'label_type': 'user'
+          }
+        }
       }
     });
 
@@ -74,7 +129,15 @@ export const config = {
 
   } finally {
     if (browser) {
+      let sessionId = browser.sessionId;
+      Passed(sessionId);
+      console.log(`https://ui-dev.headspin.io/sessions/${sessionId}/waterfall`);
       await browser.deleteSession();
+      console.log('Test complete');
+    }
+    else {
+      console.log('Test failed');
+      Failed(null)
     }
   }
-});
+})();
