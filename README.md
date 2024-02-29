@@ -1,7 +1,3 @@
-Below is a README template for the script you've shared. This README provides an overview of what the script does, how to set it up, and how to run it. You might need to adjust paths, commands, or specific details according to your actual project setup or requirements.
-
----
-
 # WebdriverIO Test Script with API Integration
 
 This Node.js script automates web testing using WebdriverIO and integrates API calls using `node-fetch`. It demonstrates navigating a web page, performing actions based on assertions, and reporting test outcomes via API calls.
